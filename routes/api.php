@@ -19,5 +19,11 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 Route::namespace('API')->name('api.')->group(function () {
-    Route::apiResource('projects', 'ProjectController');
+    Route::get('/projects', 'ProjectController@index')->name('projects.index');
+    Route::post('/projects', 'ProjectController@store')->name('projects.store');
+    Route::get('/projects/{project}', 'ProjectController@show')->name('projects.show');
+    Route::patch('/projects/{project}', 'ProjectController@update')->name('projects.update');
+    Route::delete('/projects/{id}/archive', 'ProjectController@archive')->name('projects.archive');
+    Route::patch('/projects/{id}/restore', 'ProjectController@restore')->name('projects.restore');
+    Route::delete('/projects/{id}', 'ProjectController@destroy')->name('projects.destroy');
 });

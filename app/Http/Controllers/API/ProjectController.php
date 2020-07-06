@@ -75,18 +75,60 @@ class ProjectController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Soft delete the specified resource in storage.
      *
-     * @param  \App\Project  $project
+     * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(Project $project)
+    public function archive($id)
     {
+        $project = Project::where('id', $id)
+            ->first();
+
+        $this->authorize('delete', $project);
+
+        $project->delete();
+    }
+
+    /**
+     * Restore the specified resource in storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function restore($id)
+    {
+        $project = Project::onlyTrashed()
+            ->where('id', $id)
+            ->first();
+
+        $this->authorize('restore', $project);
+
+        $project->restore();
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function destroy($id)
+    {
+        $project = Project::withTrashed()
+            ->where('id', $id)
+            ->first();
+
         $this->authorize('forceDelete', $project);
 
         $project->forceDelete();
     }
 
+    /**
+     * Validates the attributes given against requirements
+     *
+     * @return void
+     */
     public function validateAttributes()
     {
         request()->validate([
