@@ -15,8 +15,9 @@ class CreateProjectsTable extends Migration
     {
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('owner_id');
+            $table->foreignId('owner_id');
             $table->string('title');
+            $table->enum('visibility', ['public', 'internal', 'private'])->default('public');
             $table->text('description');
             $table->softDeletes();
             $table->timestamps();

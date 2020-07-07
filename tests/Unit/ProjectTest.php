@@ -23,12 +23,6 @@ class ProjectTest extends TestCase
     }
 
     /** @test */
-    public function it_belongs_to_an_owner()
-    {
-        $this->assertInstanceOf('App\User', make('Project')->owner);
-    }
-
-    /** @test */
     public function it_can_be_archived()
     {
         $project = create('Project');
@@ -63,5 +57,11 @@ class ProjectTest extends TestCase
         $this->assertDatabaseMissing('projects', [
             'id' => $project->id
         ]);
+    }
+
+    /** @test */
+    public function it_belongs_to_an_owner()
+    {
+        $this->assertInstanceOf('App\User', make('Project')->owner);
     }
 }
