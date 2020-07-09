@@ -28,9 +28,9 @@ class ProjectPolicy
      * @param  \App\Project  $project
      * @return mixed
      */
-    public function view(User $user, Project $project)
+    public function view(?User $user, Project $project)
     {
-        return true;
+        return $project->isPublic() || optional($user)->is($project->owner);
     }
 
     /**

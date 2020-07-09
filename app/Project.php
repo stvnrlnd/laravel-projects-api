@@ -13,6 +13,11 @@ class Project extends Model
         'owner_id', 'title', 'description'
     ];
 
+    public function isPublic()
+    {
+        return $this->visibility === 'public';
+    }
+
     public function owner()
     {
         return $this->belongsTo('App\User');

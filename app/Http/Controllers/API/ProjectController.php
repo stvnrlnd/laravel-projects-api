@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers\API;
 
-use App\Http\Controllers\Controller;
 use App\Project;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
@@ -20,7 +21,11 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        return Project::all();
+        if (Auth::check()) {
+            return Auth::user()->projects;
+        }
+
+        return Project::where('visibility', 'public')->get();
     }
 
     /**
@@ -50,6 +55,8 @@ class ProjectController extends Controller
      */
     public function show(Project $project)
     {
+        $this->authorize('view', $project);
+
         return $project;
     }
 

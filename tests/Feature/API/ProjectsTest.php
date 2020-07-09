@@ -12,32 +12,81 @@ class ProjectsTest extends TestCase
 
     protected $user;
 
-    protected $project;
+    protected $publicProject;
+
+    protected $internalProject;
+
+    protected $privateProject;
 
     public function setUp(): void
     {
         parent::setUp();
 
         $this->user = create('User');
-        $this->project = create('Project');
+
+        $this->publicProject = create('Project', [
+            'visibility' => 'public'
+        ]);
+
+        $this->internalProject = create('Project', [
+            'visibility' => 'internal'
+        ]);
+
+        $this->privateProject = create('Project', [
+            'visibility' => 'private'
+        ]);
     }
 
     /** @test */
-    public function anyone_can_view_all_projects()
+    public function anyone_can_view_all_public_projects()
     {
         $this->json('GET', route('api.projects.index'))
             ->assertStatus(200)
-            ->assertSee($this->project->title);
+            ->assertSee($this->publicProject->title);
     }
 
     /** @test */
-    public function anyone_can_view_a_single_project()
+    public function anyone_can_view_a_public_project()
     {
         $this->json('GET', route('api.projects.show', [
-            'project' => $this->project
+            'project' => $this->publicProject
         ]))
             ->assertStatus(200)
-            ->assertSee($this->project->title);
+            ->assertSee($this->publicProject->title);
+    }
+
+    /** @test */
+    public function a_guest_cannot_view_any_internal_projects()
+    {
+        $this->json('GET', route('api.projects.index'))
+            ->assertStatus(200)
+            ->assertDontSee($this->internalProject->title);
+    }
+
+    /** @test */
+    public function a_guest_cannot_view_any_private_projects()
+    {
+        $this->json('GET', route('api.projects.index'))
+            ->assertStatus(200)
+            ->assertDontSee($this->internalProject->title);
+    }
+
+    /** @test */
+    public function a_guest_cannot_view_an_internal_project()
+    {
+        $this->json('GET', route('api.projects.show', [
+            'project' => $this->internalProject
+        ]))
+            ->assertStatus(403);
+    }
+
+    /** @test */
+    public function a_guest_cannot_view_a_private_project()
+    {
+        $this->json('GET', route('api.projects.show', [
+            'project' => $this->privateProject
+        ]))
+            ->assertStatus(403);
     }
 
     /** @test */
@@ -51,7 +100,7 @@ class ProjectsTest extends TestCase
     public function a_guest_cannot_update_a_project()
     {
         $this->json('PATCH', route('api.projects.update', [
-            'project' => $this->project
+            'project' => $this->publicProject
         ]), [])
             ->assertstatus(401);
     }
@@ -60,7 +109,7 @@ class ProjectsTest extends TestCase
     public function a_guest_cannot_archive_a_project()
     {
         $this->json('DELETE', route('api.projects.archive', [
-            'id' => $this->project->id
+            'id' => $this->publicProject->id
         ]))
             ->assertStatus(401);
     }
@@ -69,7 +118,7 @@ class ProjectsTest extends TestCase
     public function a_guest_cannot_restore_a_project()
     {
         $this->json('PATCH', route('api.projects.restore', [
-            'id' => $this->project->id
+            'id' => $this->publicProject->id
         ]), [])
             ->assertStatus(401);
     }
@@ -78,9 +127,47 @@ class ProjectsTest extends TestCase
     public function a_guest_cannot_destroy_a_project()
     {
         $this->json('DELETE', route('api.projects.destroy', [
-            'id' => $this->project->id
+            'id' => $this->publicProject->id
         ]))
             ->assertstatus(401);
+    }
+
+    /** @test */
+    public function a_user_cannot_view_any_internal_projects()
+    {
+        $this->actingAs($this->user, 'api')
+            ->json('GET', route('api.projects.index'))
+            ->assertStatus(200)
+            ->assertDontSee($this->internalProject);
+    }
+
+    /** @test */
+    public function a_user_cannot_view_any_private_projects()
+    {
+        $this->actingAs($this->user, 'api')
+            ->json('GET', route('api.projects.index'))
+            ->assertStatus(200)
+            ->assertDontSee($this->privateProject);
+    }
+
+    /** @test */
+    public function a_user_cannot_view_an_internal_project()
+    {
+        $this->actingAs($this->user, 'api')
+            ->json('GET', route('api.projects.show', [
+                'project' => $this->internalProject
+            ]))
+            ->assertStatus(403);
+    }
+
+    /** @test */
+    public function a_user_cannot_view_a_private_project()
+    {
+        $this->actingAs($this->user, 'api')
+            ->json('GET', route('api.projects.show', [
+                'project' => $this->privateProject
+            ]))
+            ->assertStatus(403);
     }
 
     /** @test */
@@ -102,7 +189,7 @@ class ProjectsTest extends TestCase
     {
         $this->actingAs($this->user, 'api')
             ->json('PATCH', route('api.projects.update', [
-                'project' => $this->project
+                'project' => $this->publicProject
             ]), [])
             ->assertStatus(403);
     }
@@ -112,7 +199,7 @@ class ProjectsTest extends TestCase
     {
         $this->actingAs($this->user, 'api')
             ->json('DELETE', route('api.projects.archive', [
-                'id' => $this->project->id
+                'id' => $this->publicProject->id
             ]))
             ->assertStatus(403);
     }
@@ -122,7 +209,7 @@ class ProjectsTest extends TestCase
     {
         $this->actingAs($this->user, 'api')
             ->json('PATCH', route('api.projects.restore', [
-                'id' => $this->project->id
+                'id' => $this->publicProject->id
             ]), [])
             ->assertStatus(403);
     }
@@ -132,23 +219,63 @@ class ProjectsTest extends TestCase
     {
         $this->actingAs($this->user, 'api')
             ->json('DELETE', route('api.projects.destroy', [
-                'id' => $this->project->id
+                'id' => $this->publicProject->id
             ]))
             ->assertStatus(403);
     }
 
     /** @test */
+    public function the_project_owner_can_view_any_of_their_internal_projects()
+    {
+        $this->actingAs($this->internalProject->owner, 'api')
+            ->json('GET', route('api.projects.index'))
+            ->assertStatus(200)
+            ->assertSee($this->internalProject->title);
+    }
+
+    /** @test */
+    public function the_project_owner_can_view_any_of_their_private_projects()
+    {
+        $this->actingAs($this->privateProject->owner, 'api')
+            ->json('GET', route('api.projects.index'))
+            ->assertStatus(200)
+            ->assertSee($this->privateProject->title);
+    }
+
+    /** @test */
+    public function the_project_owner_can_view_their_internal_project()
+    {
+        $this->actingAs($this->internalProject->owner, 'api')
+            ->json('GET', route('api.projects.show', [
+                'project' => $this->internalProject
+            ]))
+            ->assertStatus(200)
+            ->assertSee($this->internalProject->title);
+    }
+
+    /** @test */
+    public function the_project_owner_can_view_their_private_project()
+    {
+        $this->actingAs($this->privateProject->owner, 'api')
+            ->json('GET', route('api.projects.show', [
+                'project' => $this->privateProject
+            ]))
+            ->assertStatus(200)
+            ->assertSee($this->privateProject->title);
+    }
+
+    /** @test */
     public function the_project_owner_can_update_the_project()
     {
-        $this->actingAs($this->project->owner, 'api')
+        $this->actingAs($this->publicProject->owner, 'api')
             ->json('PATCH', route('api.projects.update', [
-                'project' => $this->project
+                'project' => $this->publicProject
             ]), $attributes = raw('Project'))
             ->assertStatus(200);
 
         $this->assertDatabaseHas('projects', [
-            'id' => $this->project->id,
-            'owner_id' => $this->project->owner_id,
+            'id' => $this->publicProject->id,
+            'owner_id' => $this->publicProject->owner_id,
             'title' => $attributes['title'],
             'description' => $attributes['description'],
         ]);
@@ -157,43 +284,43 @@ class ProjectsTest extends TestCase
     /** @test */
     public function the_project_owner_can_archive_the_project()
     {
-        $this->actingAs($this->project->owner, 'api')
+        $this->actingAs($this->publicProject->owner, 'api')
             ->json('DELETE', route('api.projects.archive', [
-                'id' => $this->project->id
+                'id' => $this->publicProject->id
             ]))
             ->assertStatus(200);
 
         $this->assertDatabaseHas('projects', [
-            'id' => $this->project->id,
-            'deleted_at' => $this->project->fresh()->deleted_at
+            'id' => $this->publicProject->id,
+            'deleted_at' => $this->publicProject->fresh()->deleted_at
         ]);
     }
 
     /** @test */
     public function the_project_owner_can_restore_the_project()
     {
-        $this->project->delete();
+        $this->publicProject->delete();
 
-        $this->actingAs($this->project->owner, 'api')
+        $this->actingAs($this->publicProject->owner, 'api')
             ->json('PATCH', route('api.projects.restore', [
-                'id' => $this->project->id
+                'id' => $this->publicProject->id
             ]))
             ->assertStatus(200);
 
-        $this->assertNull($this->project->fresh()->deleted_at);
+        $this->assertNull($this->publicProject->fresh()->deleted_at);
     }
 
     /** @test */
     public function the_project_owner_can_destroy_the_project()
     {
-        $this->actingAs($this->project->owner, 'api')
+        $this->actingAs($this->publicProject->owner, 'api')
             ->json('DELETE', route('api.projects.destroy', [
-                'id' => $this->project->id
+                'id' => $this->publicProject->id
             ]))
             ->assertStatus(200);
 
         $this->assertDatabaseMissing('projects', [
-            'id' => $this->project->id
+            'id' => $this->publicProject->id
         ]);
     }
 }
