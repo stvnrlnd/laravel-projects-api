@@ -56,6 +56,21 @@ class ProjectsTest extends TestCase
     }
 
     /** @test */
+    public function anyone_can_filter_a_public_project_by_owner()
+    {
+        $randomProject = create('Project', [
+            'visibility' => 'public'
+        ]);
+
+        $this->json('GET', route('api.projects.index', [
+            'by' => $this->publicProject->owner_id
+        ]))
+            ->assertStatus(200)
+            ->assertSee($this->publicProject->title)
+            ->assertDontSee($randomProject->title);
+    }
+
+    /** @test */
     public function a_guest_cannot_view_any_internal_projects()
     {
         $this->json('GET', route('api.projects.index'))

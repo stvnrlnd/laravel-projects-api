@@ -13,13 +13,18 @@ class Project extends Model
         'owner_id', 'title', 'description'
     ];
 
-    public function isPublic()
+    public function scopeFilter($query, $filter)
     {
-        return $this->visibility === 'public';
+        return $filter->apply($query);
     }
 
     public function owner()
     {
         return $this->belongsTo('App\User');
+    }
+
+    public function isPublic()
+    {
+        return $this->visibility === 'public';
     }
 }

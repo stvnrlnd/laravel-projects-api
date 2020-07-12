@@ -4,6 +4,7 @@ namespace App\Http\Controllers\API;
 
 use App\Project;
 use Illuminate\Http\Request;
+use App\Filters\ProjectFilter;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 
@@ -19,13 +20,9 @@ class ProjectController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(ProjectFilter $filter)
     {
-        if (Auth::check()) {
-            return Auth::user()->projects;
-        }
-
-        return Project::where('visibility', 'public')->get();
+        return $this->filterProjects($filter);
     }
 
     /**
@@ -131,12 +128,23 @@ class ProjectController extends Controller
         $project->forceDelete();
     }
 
+    protected function filterProjects(ProjectFilter $filter)
+    {
+        $projects = Project::latest()->filter($filter);
+
+        if (! Auth::check()) {
+            $projects->where('visibility', 'public');
+        }
+
+        return $projects->paginate(25);
+    }
+
     /**
      * Validates the attributes given against requirements
      *
      * @return void
      */
-    public function validateAttributes()
+    protected function validateAttributes()
     {
         request()->validate([
             'title' => 'required',
