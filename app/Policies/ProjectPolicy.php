@@ -30,7 +30,11 @@ class ProjectPolicy
      */
     public function view(?User $user, Project $project)
     {
-        return $project->isPublic() || optional($user)->is($project->owner);
+        if (! $project->isPublic()) {
+            return optional($user)->is($project->owner) || $project->members->contains(optional($user)->id);
+        }
+
+        return true;
     }
 
     /**

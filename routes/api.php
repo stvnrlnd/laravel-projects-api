@@ -26,4 +26,7 @@ Route::namespace('API')->name('api.')->group(function () {
     Route::delete('/projects/{id}/archive', 'ProjectController@archive')->name('projects.archive');
     Route::patch('/projects/{id}/restore', 'ProjectController@restore')->name('projects.restore');
     Route::delete('/projects/{id}', 'ProjectController@destroy')->name('projects.destroy');
+
+    Route::post('/projects/{project}/member/add', 'ProjectUserController@store')->name('project_user.add');
+    Route::delete('/projects/{project}/member/remove', 'ProjectUserController@destroy')->name('project_user.remove');
 });

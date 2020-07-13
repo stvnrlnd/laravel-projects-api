@@ -148,6 +148,24 @@ class ProjectsTest extends TestCase
     }
 
     /** @test */
+    public function a_guest_cannot_add_a_project_member()
+    {
+        $this->json('POST', route('api.project_user.add', [
+            'project' => $this->publicProject
+        ]), ['id' => $this->user->id])
+            ->assertStatus(401);
+    }
+
+    /** @test */
+    public function a_guest_cannot_remove_a_project_member()
+    {
+        $this->json('DELETE', route('api.project_user.remove', [
+            'project' => $this->publicProject
+        ]), ['id' => $this->user->id])
+            ->assertStatus(401);
+    }
+
+    /** @test */
     public function a_user_cannot_view_any_internal_projects()
     {
         $this->actingAs($this->user, 'api')
@@ -236,6 +254,26 @@ class ProjectsTest extends TestCase
             ->json('DELETE', route('api.projects.destroy', [
                 'id' => $this->publicProject->id
             ]))
+            ->assertStatus(403);
+    }
+
+    /** @test */
+    public function a_user_cannot_add_a_project_member()
+    {
+        $this->actingAs($this->user, 'api')
+            ->json('POST', route('api.project_user.add', [
+                'project' => $this->publicProject
+            ]), ['id' => $this->user->id])
+            ->assertStatus(403);
+    }
+
+    /** @test */
+    public function a_user_cannot_remove_a_project_member()
+    {
+        $this->actingAs($this->user, 'api')
+            ->json('DELETE', route('api.project_user.remove', [
+                'project' => $this->publicProject
+            ]), ['id' => $this->user->id])
             ->assertStatus(403);
     }
 
@@ -337,5 +375,50 @@ class ProjectsTest extends TestCase
         $this->assertDatabaseMissing('projects', [
             'id' => $this->publicProject->id
         ]);
+    }
+
+    /** @test */
+    public function the_project_owner_can_add_project_members()
+    {
+        $this->actingAs($this->publicProject->owner, 'api')
+            ->json('POST', route('api.project_user.add', [
+                'project' => $this->publicProject
+            ]), ['id' => $this->user->id])
+            ->assertStatus(201);
+
+        $this->assertDatabaseHas('project_user', [
+            'project_id' => $this->publicProject->id,
+            'user_id' => $this->user->id
+        ]);
+    }
+
+    /** @test */
+    public function the_project_owner_can_remove_project_members()
+    {
+        $this->publicProject->members()->attach($this->user);
+
+        $this->actingAs($this->publicProject->owner, 'api')
+            ->json('DELETE', route('api.project_user.remove', [
+                'project' => $this->publicProject
+            ]), ['id' => $this->user->id])
+            ->assertStatus(200);
+
+        $this->assertDatabaseMissing('project_user', [
+            'project_id' => $this->publicProject->id,
+            'user_id' => $this->user->id
+        ]);
+    }
+
+    /** @test */
+    public function an_internal_project_member_can_view_the_project()
+    {
+        $this->internalProject->members()->attach($this->user);
+
+        $this->actingAs($this->user, 'api')
+            ->json('GET', route('api.projects.show', [
+                'project' => $this->internalProject
+            ]))
+            ->assertStatus(200)
+            ->assertSee($this->internalProject->title);
     }
 }

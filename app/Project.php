@@ -23,6 +23,11 @@ class Project extends Model
         return $this->belongsTo('App\User');
     }
 
+    public function members()
+    {
+        return $this->belongsToMany('App\User', 'project_user', 'project_id', 'user_id');
+    }
+
     public function isPublic()
     {
         return $this->visibility === 'public';
